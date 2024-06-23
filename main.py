@@ -23,7 +23,8 @@ from crawl4ai.web_crawler import WebCrawler
 from crawl4ai.database import get_total_count, clear_db
 
 from fastapi.security.api_key import APIKeyHeader
-from app.auth import get_api_key
+from auth import get_api_key
+from fastapi import Depends
 
 API_KEY_NAME = "api_key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
@@ -73,11 +74,11 @@ class CrawlRequest(BaseModel):
     verbose: Optional[bool] = True
 
 @app.get("/")
-def read_root():
+def read_root(api_key: str = Depends(get_api_key)):
     return RedirectResponse(url="/mkdocs")
 
 @app.get("/old", response_class=HTMLResponse)
-async def read_index(request: Request):
+async def read_index(request: Request, api_key: str = Depends(get_api_key)):
     partials_dir = os.path.join(__location__, "pages", "partial")
     partials = {}
 
