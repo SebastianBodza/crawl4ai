@@ -22,6 +22,12 @@ from typing import List, Optional
 from crawl4ai.web_crawler import WebCrawler
 from crawl4ai.database import get_total_count, clear_db
 
+from fastapi.security.api_key import APIKeyHeader
+from app.auth import get_api_key
+
+API_KEY_NAME = "api_key"
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
+
 # Configuration
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 MAX_CONCURRENT_REQUESTS = 10  # Adjust this to change the maximum concurrent requests
@@ -83,12 +89,12 @@ async def read_index(request: Request):
     return templates.TemplateResponse("index.html", {"request": request, **partials})
 
 @app.get("/total-count")
-async def get_total_url_count():
+async def get_total_url_count(api_key: str = Depends(get_api_key)):
     count = get_total_count()
     return JSONResponse(content={"count": count})
 
 @app.get("/clear-db")
-async def clear_database():
+async def clear_database(api_key: str = Depends(get_api_key)):
     # clear_db()
     return JSONResponse(content={"message": "Database cleared."})
 
@@ -105,7 +111,7 @@ def import_strategy(module_name: str, class_name: str, *args, **kwargs):
         raise HTTPException(status_code=400, detail=f"Class {class_name} not found in {module_name}.")
 
 @app.post("/crawl")
-async def crawl_urls(crawl_request: CrawlRequest, request: Request):
+async def crawl_urls(crawl_request: CrawlRequest, request: Request, api_key: str = Depends(get_api_key)):
     logging.debug(f"[LOG] Crawl request for URL: {crawl_request.urls}")
     global current_requests
     async with lock:
@@ -154,12 +160,12 @@ async def crawl_urls(crawl_request: CrawlRequest, request: Request):
             current_requests -= 1
             
 @app.get("/strategies/extraction", response_class=JSONResponse)
-async def get_extraction_strategies():
+async def get_extraction_strategies(api_key: str = Depends(get_api_key)):
     with open(f"{__location__}/docs/extraction_strategies.json", "r") as file:
         return JSONResponse(content=file.read())
 
 @app.get("/strategies/chunking", response_class=JSONResponse)
-async def get_chunking_strategies():
+async def get_chunking_strategies(api_key: str = Depends(get_api_key)):
     with open(f"{__location__}/docs/chunking_strategies.json", "r") as file:
         return JSONResponse(content=file.read())
 
